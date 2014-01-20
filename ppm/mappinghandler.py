@@ -1,6 +1,7 @@
 import utility
 from distutils.version import StrictVersion
 
+
 class MappingHandler:
     def __init__(self, data):
         if data is None:
@@ -17,24 +18,24 @@ class MappingHandler:
         parentDirectoryPath = depDetails["parentDirectoryPath"] if "parentDirectoryPath" in depDetails else None
         directoryName = depDetails["directoryName"] if "directoryName" in depDetails else None
         url = depDetails["url"] if "url" in depDetails else None
-        
+
         if (not utility.secure_against_path_traversal(parentDirectoryPath)) or (not utility.secure_against_path_traversal(directoryName)):
-            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath,directoryName)))
-        
-        return url, parentDirectoryPath , directoryName
+            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath, directoryName)))
+
+        return url, parentDirectoryPath, directoryName
 
     def get_packages(self):
         return self.data.keys()
 
     def add_package(self, dependencyName, dependencyVersion, url, parentDirectoryPath=None, directoryName=None, origin=None):
         if (not utility.secure_against_path_traversal(parentDirectoryPath)) or (not utility.secure_against_path_traversal(directoryName)):
-            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath,directoryName)))
+            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath, directoryName)))
         if not url:
             raise Exception("invalid url")
         if not dependencyName:
             raise Exception("invalid dependency name")
         dependencyVersion = str(StrictVersion(dependencyVersion))
-        dependencyDetails = {"url" : url}
+        dependencyDetails = {"url": url}
         if parentDirectoryPath is not None:
             dependencyDetails["parentDirectoryPath"] = parentDirectoryPath
         if directoryName is not None:
@@ -42,7 +43,7 @@ class MappingHandler:
         if origin is not None:
             dependencyDetails["origin"] = origin
 
-        if  dependencyName not in self.data:
+        if dependencyName not in self.data:
             self.data[dependencyName] = {}
         self.data[dependencyName][dependencyVersion] = dependencyDetails
 

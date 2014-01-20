@@ -5,18 +5,19 @@ import utility
 # temporary folder to extract compressed files in
 TMP_EXTRACTION_DIRECTORY_NAME = "tmp"
 
+
 class DependencyManager:
     def __init__(self, installedDependencies, downloadDirectory):
-        assert (isinstance(installedDependencies,InstalledDependencies))
+        assert (isinstance(installedDependencies, InstalledDependencies))
         assert downloadDirectory and os.path.exists(downloadDirectory)
 
         self.installedDependencies = installedDependencies
         self.downloadDirectory = downloadDirectory
-        self.tmpDirectory = utility.joinPaths(self.downloadDirectory,TMP_EXTRACTION_DIRECTORY_NAME)
+        self.tmpDirectory = utility.joinPaths(self.downloadDirectory, TMP_EXTRACTION_DIRECTORY_NAME)
         if not utility.new_directory(self.tmpDirectory):
             utility.clear_directory_contents(self.tmpDirectory)
-    
-    def install_dependency(self,dependencyName, version, url, installDirectory):
+
+    def install_dependency(self, dependencyName, version, url, installDirectory):
         downloadDirectory = self.downloadDirectory
         tmpDirectory = self.tmpDirectory
         savePath = utility.download_file(url, downloadDirectory)
@@ -34,13 +35,13 @@ class DependencyManager:
         #if os.path.exists(installDirectory):
         #    utility.log("installation directory {i} for dependency {d} already exist, overwriting it...".format(i=installDirectory,d=dependencyName))
         #    shutil.rmtree(installDirectory)
-        
+
         utility.new_directory(installDirectory)
 
         # if the archive top level contains only one directory,copy its contents(not the directory itself)
         tempDirContents = [name for name in os.listdir(tmpDirectory)]
-        if len(tempDirContents) == 1 and os.path.isdir(utility.joinPaths(tmpDirectory,tempDirContents[0])):
-            dirPath = utility.joinPaths(tmpDirectory,tempDirContents[0])
+        if len(tempDirContents) == 1 and os.path.isdir(utility.joinPaths(tmpDirectory, tempDirContents[0])):
+            dirPath = utility.joinPaths(tmpDirectory, tempDirContents[0])
             utility.move_directory_contents(dirPath, installDirectory)
             os.rmdir(dirPath)
         else:
@@ -62,6 +63,7 @@ class DependencyManager:
 
     def __del__(self):
         shutil.rmtree(self.tmpDirectory)
+
 
 class InstalledDependencies:
     def __init__(self, data):
@@ -90,9 +92,9 @@ class InstalledDependencies:
     def add_dependency(self, depName, version, installationPath):
         assert (version and installationPath)
         assert (not self.is_installed(depName))
-        self.data[depName] = {"version":version,"absolutePath":installationPath}
+        self.data[depName] = {"version": version, "absolutePath": installationPath}
 
-    def is_installed(self, depName, version = None):
+    def is_installed(self, depName, version=None):
         assert(depName)
         if depName in self.data and (version is None or version == self.data[depName]["version"]):
             return True

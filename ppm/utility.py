@@ -12,13 +12,13 @@ def load_json_file(depsFilePath):
         try:
             jsonData = json.load(fileContent)
         except ValueError:
-            jsonData ={}
+            jsonData = {}
         except Exception:
             raise Exception("Error decoding JSON file  {f}".format(f=depsFilePath))
     return jsonData
 
 def save_json_to_file(jsonData, depsFilePath):
-    with open(depsFilePath,'w+') as fileContent:
+    with open(depsFilePath, 'w+') as fileContent:
         try:
             jsonData = json.dump(jsonData, fileContent)
         except Exception:
@@ -36,7 +36,7 @@ def download_file(url, installDirectory):
     assert (os.path.exists(installDirectory))
     localName = url2name(url)
     r = urllib2.urlopen(urllib2.Request(url))
-    if r.info().has_key('Content-Disposition'):
+    if 'Content-Disposition' in r.info():
         # If the response has Content-Disposition, we take file name from it
         localName = r.info()['Content-Disposition'].split('filename=')[1]
         if localName[0] == '"' or localName[0] == "'":
@@ -103,21 +103,20 @@ def query_yes_no(question):
         if choice in valid:
             return valid[choice]
         else:
-           print("Please respond with 'yes' or 'no' "\
-                             "(or 'y' or 'n').\n")
+            print("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 def move_directory_contents(src, dest):
     assert os.path.isdir(src) and os.path.isdir(dest)
     for filename in os.listdir(src):
-       shutil.move(joinPaths(src, filename), joinPaths(dest, filename))   
+        shutil.move(joinPaths(src, filename), joinPaths(dest, filename))
 
 # facility on top of os..path.join to normalize paths and ignore empty strings
 def joinPaths(*paths):
     return os.path.join(*[os.path.normpath(os.path.normcase(p)) for p in paths if p])
 
 #DIRTY: quick way to print nested messages
-def log(message,indentPadding=0):
-    if not hasattr(log,'indent'):
+def log(message, indentPadding=0):
+    if not hasattr(log, 'indent'):
         log.indent = 0
         log.indentPattern = "  "
     print (log.indentPattern * log.indent) + message
