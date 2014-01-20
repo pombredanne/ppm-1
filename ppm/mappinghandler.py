@@ -1,4 +1,4 @@
-from utility import *
+import utility
 from distutils.version import StrictVersion
 
 class MappingHandler:
@@ -18,8 +18,8 @@ class MappingHandler:
         directoryName = depDetails["directoryName"] if "directoryName" in depDetails else None
         url = depDetails["url"] if "url" in depDetails else None
         
-        if (not secure_against_path_traversal(parentDirectoryPath)) or (not secure_against_path_traversal(directoryName)):
-            raise Exception("possible File Traversal Attack caused by {s}".format(s=joinPaths(parentDirectoryPath,directoryName)))
+        if (not utility.secure_against_path_traversal(parentDirectoryPath)) or (not utility.secure_against_path_traversal(directoryName)):
+            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath,directoryName)))
         
         return url, parentDirectoryPath , directoryName
 
@@ -27,8 +27,8 @@ class MappingHandler:
         return self.data.keys()
 
     def add_package(self, dependencyName, dependencyVersion, url, parentDirectoryPath=None, directoryName=None, origin=None):
-        if (not secure_against_path_traversal(parentDirectoryPath)) or (not secure_against_path_traversal(directoryName)):
-            raise Exception("possible File Traversal Attack caused by {s}".format(s=joinPaths(parentDirectoryPath,directoryName)))
+        if (not utility.secure_against_path_traversal(parentDirectoryPath)) or (not utility.secure_against_path_traversal(directoryName)):
+            raise Exception("possible File Traversal Attack caused by {s}".format(s=utility.joinPaths(parentDirectoryPath,directoryName)))
         if not url:
             raise Exception("invalid url")
         if not dependencyName:

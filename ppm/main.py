@@ -5,7 +5,7 @@ import os
 import urllib2
 from distutils.version import StrictVersion
 import json
-from utility import *
+import utility
 from dependencymanager import DependencyManager,InstalledDependencies
 from mappinghandler import MappingHandler
 from urlparse import urljoin
@@ -57,10 +57,10 @@ def parseArguments():
     args.func(args)
 
 def cmd_sync(args):
-    depsFile = joinPaths(os.getcwd(),DEPS_FILE)
+    depsFile = utility.joinPaths(os.getcwd(),DEPS_FILE)
     if not os.path.exists(depsFile):
         raise Exception("unable to fetch dependencies, {d} file does not exist".format(d=DEPS_FILE))
-    jsonData = load_json_file(depsFile)
+    jsonData = utility.load_json_file(depsFile)
     if (not args.production and 'devDependencies' not in jsonData) or (args.production and 'prodDependencies' not in jsonData):
         print "no dependencies found"
         return
@@ -72,8 +72,8 @@ def cmd_sync(args):
             )
     installedDeps = InstalledDependencies(load_installed_deps_file())
 
-    downloadDirectory = joinPaths(os.getcwd(), DEPS_FOLDER_NAME)
-    new_directory(downloadDirectory)
+    downloadDirectory = utility.joinPaths(os.getcwd(), DEPS_FOLDER_NAME)
+    utility.new_directoryctory(downloadDirectory)
     dependencyManager = DependencyManager(installedDeps, downloadDirectory)
     if args.deps_map_location:
         mappingHandler = download_mapping_handler(args.deps_map_location)
@@ -91,16 +91,16 @@ def cmd_mirror_packages(args):
     downloadDirectory = args.downloadDirectory
     remoteDepsMapUrl = args.remoteDepsMapUrl
     urlPrefix = args.urlPrefix
-    filePath = joinPaths(downloadDirectory,"depmap.json")
+    filePath = utility.joinPaths(downloadDirectory,"depmap.json")
 
     if not os.path.exists(downloadDirectory):
-        log("{d} directory does not exist".format(d=downloadDirectory))
+        utility.log("{d} directory does not exist".format(d=downloadDirectory))
         return
 
-    localMappingHandler = MappingHandler(load_json_file(filePath) if os.path.exists(filePath) else {})
+    localMappingHandler = MappingHandler(utility.load_json_file(filePath) if os.path.exists(filePath) else {})
     remoteMappingHandler = download_mapping_handler(remoteDepsMapUrl)
     mirror_map(remoteMappingHandler, localMappingHandler, downloadDirectory, urlPrefix)
-    save_json_to_file(localMappingHandler.get_data(), filePath)
+    utility.save_json_to_file(localMappingHandler.get_data(), filePath)
 
 def cmd_set_deps_map(args):
     depsMapUrl = args.depsMapLocation
@@ -126,10 +126,10 @@ def mirror_map(sourceMappingHandler, localMappingHandler, downloadDirectory, url
                 localPackageOrigin = localMappingHandler.get_origin(remotePackageName, remotePackageVersion)
             if remoteUrl != localPackageOrigin:
                 try:
-                    log("downloading package {p} version {v}".format(p=remotePackageName, v=remotePackageVersion))
-                    savePath = download_file(remoteUrl, downloadDirectory)
+                    utility.log("downloading package {p} version {v}".format(p=remotePackageName, v=remotePackageVersion))
+                    savePath = utility.download_file(remoteUrl, downloadDirectory)
                 except Exception:
-                    log("Error downloading package {p} version {v}".format(p=remotePackageName,v=remotePackageVersion))
+                    utility.log("Error downloading package {p} version {v}".format(p=remotePackageName,v=remotePackageVersion))
                     continue
             else:
                 savePath = localMappingHandler.get_dependency_details(remotePackageName,remotePackageVersion)[0]
@@ -152,16 +152,16 @@ def sync_dependencies(requiredDeps, installedDependencies, depsMap, dependencyMa
     #DIRTY: closure linking sync_dependencies and install_dependency, added because the pattern in used in several places
     def call_install_dependency(dependencyName, version):
         url, parentDirectoryPath, directoryName = depsMap.get_dependency_details(dependencyName, version)
-        installDirectoryPath = joinPaths(get_installation_directory_path(), parentDirectoryPath, directoryName if directoryName is not None else dependencyName)
+        installDirectoryPath = utility.joinPaths(get_installation_directory_path(), parentDirectoryPath, directoryName if directoryName is not None else dependencyName)
         try:
             dependencyManager.install_dependency(dependencyName, version,url,installDirectoryPath)
-            log("{d} installed successfuly".format(d=dependencyName))
+            utility.log("{d} installed successfuly".format(d=dependencyName))
         except Exception as e:
-            log("a problem occurred while installing {d} : {m}".format(d=dependencyName,m=str(e)))
+            utility.log("a problem occurred while installing {d} : {m}".format(d=dependencyName,m=str(e)))
 
-    log("synchronizing dependencies")
+    utility.log("synchronizing dependencies")
     for depName in requiredDeps.get_dependencies_list():
-        log("Processing {d}".format(d=depName),1)
+        utility.log("Processing {d}".format(d=depName),1)
         if installedDependencies.is_installed(depName):
             installedVersion = StrictVersion(installedDependencies.get_installed_version(depName))
         else:
@@ -170,63 +170,63 @@ def sync_dependencies(requiredDeps, installedDependencies, depsMap, dependencyMa
         if reqVersionString != 'latest':
             requiredVersion = StrictVersion(reqVersionString)
             if requiredVersion == installedVersion:
-                log("Required version == Installed version == {v}".format(v=str(installedVersion)))
+                utility.log("Required version == Installed version == {v}".format(v=str(installedVersion)))
             elif requiredVersion < installedVersion:
                 if flags.downgrade:
                     if depsMap.check_dependency_existence(depName, str(requiredVersion)):
                         call_install_dependency(depName,str(requiredVersion))
                     else:
-                        log("{d} version {v} is not found".format(d=depName,v=str(requiredVersion)))
+                        utility.log("{d} version {v} is not found".format(d=depName,v=str(requiredVersion)))
                 else:
-                    log("Required version {v1} < Installed version {v2}, No action taken (downgrade flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)))
+                    utility.log("Required version {v1} < Installed version {v2}, No action taken (downgrade flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)))
             else:
                 if (flags.update and installedVersion > StrictVersion('0.0')) or (flags.install and installedVersion == StrictVersion('0.0')):
                     if depsMap.check_dependency_existence(depName, str(requiredVersion)):
                         call_install_dependency(depName,str(requiredVersion))
                     else:
-                        log("{d} version {v} is not found".format(d=depName,v=str(requiredVersion)))
+                        utility.log("{d} version {v} is not found".format(d=depName,v=str(requiredVersion)))
                 else:
-                    log("Required version {v1} > Installed version {v2}, No action taken (update flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)))
+                    utility.log("Required version {v1} > Installed version {v2}, No action taken (update flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)))
         else:
             try:
                 availableVersions = depsMap.get_versions(depName)
                 availableVersions.sort(key=StrictVersion)
                 requiredVersion = StrictVersion(availableVersions[-1])
             except Exception:
-                log("no versions for {d} are available\n".format(d=depName),-1)
+                utility.log("no versions for {d} are available\n".format(d=depName),-1)
                 continue
             if requiredVersion == installedVersion:
-                log("Latest version == Installed version == {v}".format(v=str(installedVersion)))
+                utility.log("Latest version == Installed version == {v}".format(v=str(installedVersion)))
             elif requiredVersion < installedVersion:
-                log("Latest version {v1} < Installed version {v2}".format(v1=str(requiredVersion), v2=str(installedVersion)))
+                utility.log("Latest version {v1} < Installed version {v2}".format(v1=str(requiredVersion), v2=str(installedVersion)))
                 if flags.downgrade:
-                    if query_yes_no("do you want to downgrade dependency {d} from version {v1} to version {v2}".format(d=depName, v1=str(installedVersion), v2=str(requiredVersion))):
+                    if utility.query_yes_no("do you want to downgrade dependency {d} from version {v1} to version {v2}".format(d=depName, v1=str(installedVersion), v2=str(requiredVersion))):
                         call_install_dependency(depName,str(requiredVersion))
                     else:
-                        log("omitting {d}".format(d=depName))
+                        utility.log("omitting {d}".format(d=depName))
                 else:
-                    log("No action taken (downgrade flag is not set)")
+                    utility.log("No action taken (downgrade flag is not set)")
             else:
                 if (flags.update and installedVersion > StrictVersion('0.0')) or (flags.install and installedVersion == StrictVersion('0.0')):
                     call_install_dependency(depName,str(requiredVersion))
                 else:
-                    log("Required latest version = {v1} > Installed version {v2}, No action taken ({f} flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)), f= "install" if installedVersion == StrictVersion('0.0') else "update" )
+                    utility.log("Required latest version = {v1} > Installed version {v2}, No action taken ({f} flag is not set)".format(v1=str(requiredVersion), v2=str(installedVersion)), f= "install" if installedVersion == StrictVersion('0.0') else "update" )
         # unident log messages
-        log("",-1)
+        utility.log("",-1)
 
     dependenciesToRemove = [item for item in installedDependencies.get_dependencies_list() if item not in requiredDeps.get_dependencies_list()]
     if dependenciesToRemove:
-        log("Installed dependencies that are not needed anymore : " + ",".join(dependenciesToRemove))
+        utility.log("Installed dependencies that are not needed anymore : " + ",".join(dependenciesToRemove))
         if not flags.remove:
-            log("ommiting uneeded dependencies (remove flag is not set)")
+            utility.log("ommiting uneeded dependencies (remove flag is not set)")
         else:
             for dependencyName in dependenciesToRemove:
-                log("removing {d}".format(d=dependencyName))
+                utility.log("removing {d}".format(d=dependencyName))
                 dependencyManager.remove_dependency(dependencyName)
-    log("synchronization operation finished")    
+    utility.log("synchronization operation finished")    
 
 def get_installation_directory_path():
-    dirct = joinPaths(os.getcwd(), DEPS_FOLDER_NAME)
+    dirct = utility.joinPaths(os.getcwd(), DEPS_FOLDER_NAME)
     if not os.path.exists(dirct):
         os.makedirs(dirct)
     return dirct
@@ -235,8 +235,8 @@ def load_mapping_handler():
     config = ConfigManager()
     if config.get_deps_map_location():
         mappingHandler =download_mapping_handler(config.get_deps_map_location())
-    elif os.path.exists(joinPaths(os.getcwd(), "depsmap.json")):
-        mappingHandler = MappingHandler(load_json_file(joinPaths(os.getcwd(), "depsmap.json")))
+    elif os.path.exists(utility.joinPaths(os.getcwd(), "depsmap.json")):
+        mappingHandler = MappingHandler(utility.load_json_file(utility.joinPaths(os.getcwd(), "depsmap.json")))
     else:
         raise Exception("No dependency-to-url map file specified")
     return mappingHandler
@@ -279,17 +279,17 @@ class RequiredDependencies:
         return True
 
 def load_installed_deps_file():
-    installedDepsPath = joinPaths(os.getcwd(), CURRENT_VERSIONS_FILE)
+    installedDepsPath = utility.joinPaths(os.getcwd(), CURRENT_VERSIONS_FILE)
     installedDepsContents = None
     if os.path.exists(installedDepsPath):
-        installedDepsContents = load_json_file(installedDepsPath)
+        installedDepsContents = utility.load_json_file(installedDepsPath)
     return installedDepsContents
 
 def save_installed_deps(content):
     if not content:
         return
-    installedDepsPath = joinPaths(os.getcwd(), CURRENT_VERSIONS_FILE)
-    save_json_to_file(content,installedDepsPath)
+    installedDepsPath = utility.joinPaths(os.getcwd(), CURRENT_VERSIONS_FILE)
+    utility.save_json_to_file(content,installedDepsPath)
 
 if __name__ == "__main__":
     parseArguments()

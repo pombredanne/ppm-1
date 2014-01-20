@@ -1,8 +1,5 @@
 from mappinghandler import MappingHandler
 import unittest
-import os
-import shutil
-from utility import *
 
 class TestMappingHandler(unittest.TestCase):
     

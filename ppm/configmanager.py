@@ -1,17 +1,17 @@
 import ConfigParser
-from utility import *
+import utility
 import os
 
 # config base directory
-CONFIG_DIRECTORY_LOCATION = joinPaths(os.environ["HOME"] if "HOME" in os.environ else "~",".pdm")
+CONFIG_DIRECTORY_LOCATION = utility.joinPaths(os.environ["HOME"] if "HOME" in os.environ else "~",".pdm")
 
 # config file relative path
 CONFIG_FILE = ".config"
 
 class ConfigManager:
     def __init__(self):
-    	new_directory(CONFIG_DIRECTORY_LOCATION)
-    	configFilePath = joinPaths(CONFIG_DIRECTORY_LOCATION,CONFIG_FILE)
+    	utility.new_directory(CONFIG_DIRECTORY_LOCATION)
+    	configFilePath = utility.joinPaths(CONFIG_DIRECTORY_LOCATION,CONFIG_FILE)
     	config = ConfigParser.RawConfigParser()
         if os.path.exists(configFilePath):
             config.read(configFilePath)
@@ -28,7 +28,7 @@ class ConfigManager:
     	self.config.set("depstourlmap", "location", location)
 
     def save(self):
-    	configFilePath = joinPaths(CONFIG_DIRECTORY_LOCATION,CONFIG_FILE)
+    	configFilePath = utility.joinPaths(CONFIG_DIRECTORY_LOCATION,CONFIG_FILE)
     	if not os.path.exists(configFilePath):
 			with open(configFilePath, 'w+') as configfile:
 				self.config.write(configfile)

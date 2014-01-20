@@ -2,7 +2,7 @@ from dependencymanager import DependencyManager, InstalledDependencies
 import unittest
 import os
 import shutil
-from utility import *
+import utility
 
 class TestInstalledDependencies(unittest.TestCase):
 
@@ -31,30 +31,30 @@ class TestDependencyManager(unittest.TestCase):
 
     def setUp(self):
         self.currentDirectoryPath = os.path.dirname(os.path.realpath(__file__))
-        self.depsDirectorypath = joinPaths(self.currentDirectoryPath,"tmpdeps")
-        new_directory(self.depsDirectorypath) or clear_directory_contents(self.depsDirectorypath)
+        self.depsDirectorypath = utility.joinPaths(self.currentDirectoryPath,"tmpdeps")
+        utility.new_directory(self.depsDirectorypath) or utility.clear_directory_contents(self.depsDirectorypath)
 
     def test_methods(self):
         installedDependencies = InstalledDependencies({})
 
         dependencyManager = DependencyManager(installedDependencies, self.depsDirectorypath)
 
-        dependencyManager.install_dependency("angular","0.1","http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip",joinPaths(self.depsDirectorypath,"angularjs"))
+        dependencyManager.install_dependency("angular","0.1","http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip",utility.joinPaths(self.depsDirectorypath,"angularjs"))
         self.assertTrue(installedDependencies.is_installed("angular"))
         self.assertEqual(installedDependencies.get_installed_version("angular"),"0.1")
-        self.assertEqual(installedDependencies.get_installation_path("angular"), joinPaths(self.depsDirectorypath,"angularjs"))
-        self.assertTrue(os.path.exists(joinPaths(self.depsDirectorypath,"angularjs")))
+        self.assertEqual(installedDependencies.get_installation_path("angular"), utility.joinPaths(self.depsDirectorypath,"angularjs"))
+        self.assertTrue(os.path.exists(utility.joinPaths(self.depsDirectorypath,"angularjs")))
 
-        dependencyManager.install_dependency("angular","0.2","http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip",joinPaths(self.depsDirectorypath,"angular"))
+        dependencyManager.install_dependency("angular","0.2","http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip",utility.joinPaths(self.depsDirectorypath,"angular"))
         self.assertTrue(installedDependencies.is_installed("angular"))
         self.assertEqual(installedDependencies.get_installed_version("angular"),"0.2")
-        self.assertEqual(installedDependencies.get_installation_path("angular"), joinPaths(self.depsDirectorypath,"angular"))
-        self.assertTrue(os.path.exists(joinPaths(self.depsDirectorypath,"angular")))
-        self.assertFalse(os.path.exists(joinPaths(self.depsDirectorypath,"angularjs")))
+        self.assertEqual(installedDependencies.get_installation_path("angular"), utility.joinPaths(self.depsDirectorypath,"angular"))
+        self.assertTrue(os.path.exists(utility.joinPaths(self.depsDirectorypath,"angular")))
+        self.assertFalse(os.path.exists(utility.joinPaths(self.depsDirectorypath,"angularjs")))
 
         dependencyManager.remove_dependency("angular")
         self.assertFalse(installedDependencies.is_installed("angular"))
-        self.assertFalse(os.path.exists(joinPaths(self.depsDirectorypath,"angular")))
+        self.assertFalse(os.path.exists(utility.joinPaths(self.depsDirectorypath,"angular")))
 
     def tearDown(self):
         shutil.rmtree(self.depsDirectorypath)
