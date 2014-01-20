@@ -20,7 +20,7 @@ DEPS_FOLDER_NAME = "dependencies"
 DEPS_FILE = "dependencies.json"
 
 # downloaded dependencies will be added to this file, this file is used to compare current versions and desired versions in order to determine which packages to install
-CURRENT_VERSIONS_FILE = DEPS_FOLDER_NAME + "/current_deps.json"
+CURRENT_VERSIONS_FILE = DEPS_FOLDER_NAME + "/current_dependencies.json"
 
 def parseArguments():
     parser = argparse.ArgumentParser(description="Project Package Manager",formatter_class= lambda prog: argparse.ArgumentDefaultsHelpFormatter(prog, width=150, max_help_position=27))
@@ -56,6 +56,8 @@ def parseArguments():
     args = parser.parse_args()
     args.func(args)
 
+#cmd_sampleFunction is responsible for validating commandline arguments and loading sampleFunction dependencies(parameters of sampleFunction)
+
 def cmd_sync(args):
     depsFile = utility.joinPaths(os.getcwd(),DEPS_FILE)
     if not os.path.exists(depsFile):
@@ -70,19 +72,26 @@ def cmd_sync(args):
             downgrade = not args.without_downgrade,
             remove = not args.without_remove,
             )
+    # load currently installed dependencies
     installedDeps = InstalledDependencies(load_installed_deps_file())
 
+    # initialize directory where to download and extract compressed files
     downloadDirectory = utility.joinPaths(os.getcwd(), DEPS_FOLDER_NAME)
     utility.new_directoryctory(downloadDirectory)
+
     dependencyManager = DependencyManager(installedDeps, downloadDirectory)
+
+    # load dependencies-info data
     if args.deps_map_location:
         mappingHandler = download_mapping_handler(args.deps_map_location)
     else:
         mappingHandler = load_mapping_handler()
-    sync_dependencies(RequiredDependencies(deps),installedDeps,mappingHandler,dependencyManager, flags)
-    save_installed_deps(installedDeps.get_data())
 
-    pass
+    # synchronizing dependencies
+    sync_dependencies(RequiredDependencies(deps),installedDeps,mappingHandler,dependencyManager, flags)
+    
+    # save newly installed packages as current dependencies
+    save_installed_deps(installedDeps.get_data())
 
 def cmd_download(args):
     pass
@@ -91,7 +100,8 @@ def cmd_mirror_packages(args):
     downloadDirectory = args.downloadDirectory
     remoteDepsMapUrl = args.remoteDepsMapUrl
     urlPrefix = args.urlPrefix
-    filePath = utility.joinPaths(downloadDirectory,"depmap.json")
+
+    filePath = utility.joinPaths(downloadDirectory,"dependecies-info.json")
 
     if not os.path.exists(downloadDirectory):
         utility.log("{d} directory does not exist".format(d=downloadDirectory))

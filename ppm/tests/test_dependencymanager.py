@@ -59,6 +59,5 @@ class TestDependencyManager(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.depsDirectorypath)
 
-
 if __name__ == '__main__':
     unittest.main()

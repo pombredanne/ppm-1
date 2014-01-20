@@ -4,11 +4,11 @@ from distutils.version import StrictVersion
 class MappingHandler:
     def __init__(self, data):
         if data is None:
-            data = {}
+            self.data = {}
         elif self.__validate_schema(data):
             self.data = data
         else:
-            raise ValueError("invalid Data")
+            raise ValueError("invalid data")
 
     def get_dependency_details(self, depName, depVersion):
         assert(depName and depVersion and self.check_dependency_existence(depName, depVersion))
