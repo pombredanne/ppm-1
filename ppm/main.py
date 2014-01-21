@@ -148,7 +148,7 @@ def mirror_map(sourceMappingHandler, localMappingHandler, downloadDirectory, url
 
 # I prefer writing flags.install instead of flags["install"] or installFlag, this class is merely for that purpose
 class Flags:
-    def __init__(self, install=True, update=True, downgrade=True, remove=True):
+    def __init__(self, install, update, downgrade, remove):
         self.install = install
         self.update = update
         self.downgrade = downgrade
