@@ -5,7 +5,7 @@ import urlparse
 import shutil
 import urllib2
 import json
-
+import requests
 
 def load_json_file(depsFilePath):
     with open(depsFilePath) as fileContent:
@@ -30,6 +30,11 @@ def generate_number(length):
 
 def url2name(url):
     return os.path.basename(urllib2.unquote(urlparse.urlsplit(url)[2]))
+
+def post_json_data(jsonData,server):
+    assert(jsonData)
+    headers = {'content-type': 'application/json'}
+    requests.post(server, data=json.dumps(jsonData), headers=headers)
 
 def download_file(url, installDirectory):
     assert (url and installDirectory)
@@ -89,7 +94,7 @@ def new_directory(dirPath):
 
 #DIRTY: quick way to clear directory contents (without removing directory itself)
 def clear_directory_contents(dirPath):
-    assert os.path.exists(dirPath)
+    assert os.path.isdir(dirPath)
     shutil.rmtree(dirPath)
     os.makedirs(dirPath)
 
@@ -121,3 +126,19 @@ def log(message, indentPadding=0):
         log.indentPattern = "  "
     print (log.indentPattern * log.indent) + message
     log.indent = log.indent + indentPadding
+
+def ensure_directory(d):
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+def ensure_file_directory(f):
+    d = os.path.dirname(f)
+    ensure_directory(d)
+
+def remove_file_or_dir(path):
+    if not os.path.exists(path):
+        return
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    else:
+        os.remove(path)

@@ -1,29 +1,28 @@
 import os
 import shutil
 import utility
-
-# temporary folder to extract compressed files in
-TMP_EXTRACTION_DIRECTORY_NAME = "tmp"
+from config import TMPDOWNLOAD_DIR_REL_PATH, TMPEXTRACTION_DIR_REL_PATH
 
 
 class DependencyManager:
-    def __init__(self, installedDependencies, downloadDirectory):
-        assert (isinstance(installedDependencies, InstalledDependencies))
-        assert downloadDirectory and os.path.exists(downloadDirectory)
+    def __init__(self, installed_dependencies, base_directory):
+        assert (isinstance(installed_dependencies, InstalledDependencies))
+        assert (base_directory and os.path.isdir(base_directory))
 
-        self.installedDependencies = installedDependencies
-        self.downloadDirectory = downloadDirectory
-        self.tmpDirectory = utility.joinPaths(self.downloadDirectory, TMP_EXTRACTION_DIRECTORY_NAME)
-        if not utility.new_directory(self.tmpDirectory):
-            utility.clear_directory_contents(self.tmpDirectory)
+        self.download_directory = utility.joinPaths(base_directory, TMPDOWNLOAD_DIR_REL_PATH)
+        self.extraction_directory = utility.joinPaths(base_directory, TMPEXTRACTION_DIR_REL_PATH)
+
+        utility.remove_file_or_dir(self.download_directory)
+        utility.remove_file_or_dir(self.extraction_directory)
+        utility.ensure_directory(self.download_directory)
+        utility.ensure_directory(self.extraction_directory)
+
+        self.installedDependencies = installed_dependencies
 
     def install_dependency(self, dependencyName, version, url, installDirectory):
-        downloadDirectory = self.downloadDirectory
-        tmpDirectory = self.tmpDirectory
-        savePath = utility.download_file(url, downloadDirectory)
-
-        utility.clear_directory_contents(tmpDirectory)
-        if utility.extract_file(savePath, tmpDirectory):
+        savePath = utility.download_file(url, self.download_directory)
+        utility.clear_directory_contents(self.extraction_directory)
+        if utility.extract_file(savePath, self.extraction_directory):
             os.remove(savePath)
         else:
             raise Exception("incompatible file type")
@@ -36,16 +35,16 @@ class DependencyManager:
         #    utility.log("installation directory {i} for dependency {d} already exist, overwriting it...".format(i=installDirectory,d=dependencyName))
         #    shutil.rmtree(installDirectory)
 
-        utility.new_directory(installDirectory)
+        utility.ensure_directory(installDirectory)
 
         # if the archive top level contains only one directory,copy its contents(not the directory itself)
-        tempDirContents = [name for name in os.listdir(tmpDirectory)]
-        if len(tempDirContents) == 1 and os.path.isdir(utility.joinPaths(tmpDirectory, tempDirContents[0])):
-            dirPath = utility.joinPaths(tmpDirectory, tempDirContents[0])
+        tempDirContents = [name for name in os.listdir(self.extraction_directory)]
+        if len(tempDirContents) == 1 and os.path.isdir(utility.joinPaths(self.extraction_directory, tempDirContents[0])):
+            dirPath = utility.joinPaths(self.extraction_directory, tempDirContents[0])
             utility.move_directory_contents(dirPath, installDirectory)
             os.rmdir(dirPath)
         else:
-            utility.move_directory_contents(tmpDirectory, installDirectory)
+            utility.move_directory_contents(self.extraction_directory, installDirectory)
 
         self.installedDependencies.add_dependency(dependencyName, version, installDirectory)
         return True
@@ -62,7 +61,8 @@ class DependencyManager:
         self.installedDependencies.remove_dependency(dependencyName)
 
     def __del__(self):
-        shutil.rmtree(self.tmpDirectory)
+        utility.remove_file_or_dir(self.download_directory)
+        utility.remove_file_or_dir(self.extraction_directory)
 
 
 class InstalledDependencies:

@@ -41,13 +41,13 @@ class TestDependencyManager(unittest.TestCase):
 
         dependencyManager = DependencyManager(installedDependencies, self.depsDirectorypath)
 
-        dependencyManager.install_dependency("angular", "0.1", "http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip", utility.joinPaths(self.depsDirectorypath, "angularjs"))
+        dependencyManager.install_dependency("angular", "0.1", "http://127.0.0.1:8000/angular.js-master.zip", utility.joinPaths(self.depsDirectorypath, "angularjs"))
         self.assertTrue(installedDependencies.is_installed("angular"))
         self.assertEqual(installedDependencies.get_installed_version("angular"), "0.1")
         self.assertEqual(installedDependencies.get_installation_path("angular"), utility.joinPaths(self.depsDirectorypath, "angularjs"))
         self.assertTrue(os.path.exists(utility.joinPaths(self.depsDirectorypath, "angularjs")))
 
-        dependencyManager.install_dependency("angular", "0.2", "http://127.0.0.1:8000/tests/testpackages/angular.js-master.zip", utility.joinPaths(self.depsDirectorypath, "angular"))
+        dependencyManager.install_dependency("angular", "0.2", "http://127.0.0.1:8000/angular.js-master.zip", utility.joinPaths(self.depsDirectorypath, "angular"))
         self.assertTrue(installedDependencies.is_installed("angular"))
         self.assertEqual(installedDependencies.get_installed_version("angular"), "0.2")
         self.assertEqual(installedDependencies.get_installation_path("angular"), utility.joinPaths(self.depsDirectorypath, "angular"))
