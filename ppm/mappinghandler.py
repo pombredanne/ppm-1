@@ -1,7 +1,7 @@
 import utility
 from distutils.version import StrictVersion
 import os
-from urlparse import urljoin
+
 
 class MappingHandler:
     def __init__(self, data):
@@ -71,28 +71,3 @@ class MappingHandler:
     def __validate_schema(self, data):
         # TODO
         return True
-
-
-
-def mirror_map(sourceMappingHandler, localMappingHandler, downloadDirectory, urlPrefix):
-    for remotePackageName in sourceMappingHandler.get_packages():
-        for remotePackageVersion in sourceMappingHandler.get_versions(remotePackageName):
-            remoteUrl, remoteParentDirectoryPath, remoteDirectoryName = sourceMappingHandler.get_dependency_details(remotePackageName, remotePackageVersion)
-            localPackageOrigin = None
-            if localMappingHandler.check_dependency_existence(remotePackageName, remotePackageVersion):
-                localPackageOrigin = localMappingHandler.get_origin(remotePackageName, remotePackageVersion)
-            if remoteUrl != localPackageOrigin:
-                try:
-                    utility.log("downloading package {p} version {v}".format(p=remotePackageName, v=remotePackageVersion))
-                    savePath = utility.download_file(remoteUrl, downloadDirectory)
-                except Exception:
-                    utility.log("Error downloading package {p} version {v}".format(p=remotePackageName, v=remotePackageVersion))
-                    continue
-            else:
-                savePath = localMappingHandler.get_dependency_details(remotePackageName, remotePackageVersion)[0]
-
-            dirName = os.path.basename(os.path.dirname(savePath))
-            fileName = os.path.basename(savePath)
-            localMappingHandler.add_package(remotePackageName, remotePackageVersion, urljoin(urlPrefix, dirName + '/' + fileName), remoteParentDirectoryPath, remoteDirectoryName, remoteUrl)
-            utility.log("package {p} added successefuly".format(p=remotePackageName))
-    return localMappingHandler

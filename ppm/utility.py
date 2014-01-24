@@ -34,9 +34,10 @@ def url2name(url):
 def post_json_data(jsonData,server):
     assert(jsonData)
     headers = {'content-type': 'application/json'}
-    requests.post(server, data=json.dumps(jsonData), headers=headers)
+    r = requests.post(server, data=json.dumps(jsonData), headers=headers)
+    return r.text
 
-def download_file(url, installDirectory):
+def download_file(url, installDirectory, allowRedirection=True):
     assert (url and installDirectory)
     assert (os.path.exists(installDirectory))
     localName = url2name(url)
@@ -47,6 +48,8 @@ def download_file(url, installDirectory):
         if localName[0] == '"' or localName[0] == "'":
             localName = localName[1:-1]
     elif r.url != url:
+        if not allowRedirection:
+            raise Exception(" Redirection is not allowed, Url redirects to {r}".format(r=r.url))
         # if we were redirected, the real file name we take from the final URL
         localName = url2name(r.url)
     saveFilePath = joinPaths(installDirectory, localName)

@@ -10,7 +10,7 @@ from dependencymanager import DependencyManager, InstalledDependencies
 from mappinghandler import MappingHandler
 from settings import Settings
 from config import REQDEPS_FILE_PATH, DEPSINSTALL_DIR_PATH, CURRENTDEPS_FILE_PATH, DEPSINFO_FILE_PATH
-import server
+
 
 
 def parseArguments():
@@ -115,6 +115,7 @@ def cmd_download(args):
 
 
 def cmd_run_mirror_server(args):
+    import server
     server.run_server(args.host, int(args.port))
 
 
@@ -128,7 +129,8 @@ def cmd_update_mirror(args):
     
     jsonData = utility.load_json_file(localDepsMap)
     if jsonData:
-        utility.post_json_data(jsonData, remoteServer)
+        resText = utility.post_json_data(jsonData, remoteServer)
+        print resText
 
 
 def cmd_set_mirror(args):
