@@ -2,51 +2,43 @@
 
 import argparse
 import os
-import urllib2
 from distutils.version import StrictVersion
-import json
 import utility
+from config import REQDEPS_FILE_PATH, DEPSINSTALL_DIR_PATH, CURRENTDEPS_FILE_PATH, GENERATED_ENVIRONMENT_PATH
+from registryclient import RegistryClient
+from mirrorclient import MirrorClient
 from dependencymanager import DependencyManager, InstalledDependencies
-from mappinghandler import MappingHandler
 from settings import Settings
-from config import REQDEPS_FILE_PATH, DEPSINSTALL_DIR_PATH, CURRENTDEPS_FILE_PATH, DEPSINFO_FILE_PATH
-
-
+from environmentmanager import EnvironmentManager
 
 def parseArguments():
     parser = argparse.ArgumentParser(description="Project Package Manager", formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(prog, width=150, max_help_position=27))
 
     subparsers = parser.add_subparsers(title='commands', dest='subparser_name')
 
-    parser_sync = subparsers.add_parser('sync', help='synchronize with {d}'.format(d=REQDEPS_FILE_PATH))
+    parser_sync = subparsers.add_parser('sync', help='synchronize with {d}'.format(d=os.path.basename(REQDEPS_FILE_PATH)))
     parser_sync.add_argument('--without-install', help="do not install inexistant dependencies", default=False, action='store_true')
     parser_sync.add_argument('--without-update', help="do not update installed packages", default=False, action='store_true')
     parser_sync.add_argument('--without-downgrade', help="do not downgrade packages", default=False, action='store_true')
-    parser_sync.add_argument('--without-remove', help="do not remove installed packages which are not present in {d}".format(d=REQDEPS_FILE_PATH), default=False, action='store_true')
+    parser_sync.add_argument('--without-remove', help="do not remove installed packages which are not present in {d}".format(d=os.path.basename(REQDEPS_FILE_PATH)), default=False, action='store_true')
     parser_sync.set_defaults(func=cmd_sync)
 
-    parser_download = subparsers.add_parser('download', help='download one or more files(witout adding them to {d} or monitoring them)'.format(d=REQDEPS_FILE_PATH))
+    parser_download = subparsers.add_parser('download', help='download one or more files(witout adding them to {d} or monitoring them)'.format(d=os.path.basename(REQDEPS_FILE_PATH)))
     parser_download.add_argument('packages', help="dependencies to download in the format dependencyName@(version|latest)", nargs='+')
     parser_download.add_argument('--directory', help="directory where to download files")
     parser_download.set_defaults(func=cmd_download)
 
-    parser_mirror = subparsers.add_parser('run-mirror-server', help='run a HTTP Mirror server (serving packages)')
-    parser_mirror.add_argument('host', help="host adress")
-    parser_mirror.add_argument('port', help="port to run on")
-    parser_mirror.set_defaults(func=cmd_run_mirror_server)
+    parser_registryHandler = subparsers.add_parser('set-registry-server', help='set registry server')
+    parser_registryHandler.add_argument('server', help="host adress")
+    parser_registryHandler.set_defaults(func=cmd_set_registry)
 
-    parser_mirror = subparsers.add_parser('update-mirror', help='update Mirror server with a dependencies-info')
-    parser_mirror.add_argument('remoteServer', help="remote server ip")
-    parser_mirror.add_argument('localDepsMap', help="dependencies-info file")
-    parser_mirror.set_defaults(func=cmd_update_mirror)
-
-    parser_depsMap = subparsers.add_parser('set-mirror', help='set and save mirror server')
-    parser_depsMap.add_argument('server', help="mirror server in the format 127.0.0.1:8000")
-    parser_depsMap.set_defaults(func=cmd_set_mirror)
+    parser_mirror = subparsers.add_parser('set-mirror-server', help='set preferred mirror server')
+    parser_mirror.add_argument('server', help="host adress")
+    parser_mirror.set_defaults(func=cmd_set_mirror)
 
     parser.add_argument('--verbose', help="Enable verbosity", action='store_false')
     parser.add_argument('--production', help="production environment, development is assumed if not present", default=False, action='store_true')
-    parser.add_argument('--mirror', help="set mirror server where to fetchdependencies")
+    parser.add_argument('--mirror', help="set repository server where to fetch dependencies")
 
     args = parser.parse_args()
     args.func(args)
@@ -57,21 +49,17 @@ def cmd_sync(args):
     if not os.path.exists(REQDEPS_FILE_PATH):
         raise Exception("unable to fetch dependencies, {d} file does not exist".format(d=REQDEPS_FILE_PATH))
     jsonData = utility.load_json_file(REQDEPS_FILE_PATH)
-    if (not args.production and 'devDependencies' not in jsonData) or (args.production and 'prodDependencies' not in jsonData):
+    if (not args.production and 'devdependencies' not in jsonData) or (args.production and 'proddependencies' not in jsonData):
         print "no dependencies found"
         return
-    deps = jsonData.get('devDependencies')
+    
     flags = Flags(install=not args.without_install,
                   update=not args.without_update,
                   downgrade=not args.without_downgrade,
                   remove=not args.without_remove)
 
-    # load dependencies-info data
-    if args.mirror:
-        mappingHandler = download_mapping_handler(args.mirror)
-    else:
-        mappingHandler = load_mapping_handler()
-
+    requiredDeps = RequiredDependencies(jsonData.get('devdependencies'))
+    
     utility.ensure_directory(DEPSINSTALL_DIR_PATH)
 
     # load currently installed dependencies
@@ -79,12 +67,17 @@ def cmd_sync(args):
 
     dependencyManager = DependencyManager(installedDeps, DEPSINSTALL_DIR_PATH)
 
+    registryClient = get_registry_client()
+    if not registryClient:
+        raise Exception("registry server is not set, please set it using set-registry-server command")
+    
+    mirrorClient = get_mirror_client()
+
     # synchronizing dependencies
-    sync_dependencies(RequiredDependencies(deps), installedDeps, mappingHandler, dependencyManager, flags)
+    sync_dependencies(requiredDeps, installedDeps, registryClient, mirrorClient, dependencyManager, flags)
 
     # save newly installed packages as current dependencies
     save_installed_deps(installedDeps.get_data())
-
 
 def cmd_download(args):
     """ downloading one or more packages without monitoring them, this is meant for downloading from a local repositry """
@@ -94,52 +87,51 @@ def cmd_download(args):
         utility.log("{d} does not exist".format(d=downloadDirectory))
         return
 
-    mappingHandler = load_mapping_handler()
+    registryClient = get_registry_client()
+    if not registryClient:
+        raise Exception("registry server is not set, please set it using set-registry-server command")
+    
+    mirrorClient = get_mirror_client()
+
     for name, version in packages:
+        try:
+            package_handler = registryClient.get_package_details(name)
+        except Exception as e:
+            utility.log(str(e))
+            continue
+
         if version == 'latest':
-            version = get_latest_version(name, mappingHandler)
+            version = get_latest_version(package_handler.get_package_versions())
             if version == '0.0':
-                utility.log("{p} is not available\n".format(p=name))
+                utility.log("Package {p} is not in the ppm registry".format(p=name))
                 continue
         else:
-            try:
-                version = str(StrictVersion(version))
-            except Exception:
-                utility.log("invalid version {s}".format(s=version))
+            version = str(StrictVersion(version))
+            if not package_handler.check_version_existence(version):
+                utility.log("Package {p} is not in the ppm registry".format(p=name))
                 continue
-            if not mappingHandler.check_dependency_existence(name, version):
-                utility.log("{p} version {v} is not available\n".format(p=name, v=version))
-                continue
-        url = mappingHandler.get_dependency_details(name, version)[0]
+
+        url = package_handler.get_package_url(version)
+        # check for mirror url
+        if mirrorClient:
+            mirror_url = mirrorClient.get_package_mirror_url(url)
+            if mirror_url:
+                url = mirror_url
         utility.download_file(url, downloadDirectory)
 
-
-def cmd_run_mirror_server(args):
-    import server
-    server.run_server(args.host, int(args.port))
-
-
-def cmd_update_mirror(args):
-    remoteServer = args.remoteServer
-    localDepsMap = args.localDepsMap
-
-    if not os.path.exists(localDepsMap):
-        utility.log("{d} does not exist".format(d=localDepsMap))
-        return
-    
-    jsonData = utility.load_json_file(localDepsMap)
-    if jsonData:
-        resText = utility.post_json_data(jsonData, remoteServer)
-        print resText
-
+def cmd_set_registry(args):
+    server = args.server
+    settings = Settings()
+    settings.set_registry_server(server)
+    settings.save()
+    print "registry server has been set to {s}".format(s=server)
 
 def cmd_set_mirror(args):
     server = args.server
     settings = Settings()
-    settings.set_deps_map_location(server)
+    settings.set_mirror_server(server)
     settings.save()
-    print "deps map location saved successfuly"
-
+    print "mirror server has been set to {s}".format(s=server)
 
 # I prefer writing flags.install instead of flags["install"] or installFlag, this class is merely for that purpose
 class Flags:
@@ -149,83 +141,55 @@ class Flags:
         self.downgrade = downgrade
         self.remove = remove
 
-
-def sync_dependencies(requiredDeps, installedDependencies, depsMap, dependencyManager, flags):
+def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirrorClient, dependencyManager, flags):
     """synchronizing installed dependencies with requiredDeps, include installing,updating,downgrading and removing dependencies, in accordance to flags,
     Args:
         requiredDeps: array containing required dependencies for the project, in the format [{depName:version},{depName2,version}]
         installedDependencies: currently installed dependencies
-        depsMap: map between dependencies and installation information (download url,installLocation...)
-        DependencyManager: the Manager responsible for installing dependencies (injected)
+        registryClient: client used for requesting a package details from the registry
+        mirrorClient: client used for checking for a package mirror url
+        DependencyManager: responsible for dependency installation (or remove)
         flags: operations to be performed (can be update, install, downgrade, remove or any combintation of them)
     """
 
-    #DIRTY: closure linking sync_dependencies and install_dependency, added because the pattern in used in several places
-    def call_install_dependency(dependencyName, version):
-
-        url, parentDirectoryPath, directoryName = depsMap.get_dependency_details(dependencyName, version)
-        installDirectoryPath = utility.joinPaths(DEPSINSTALL_DIR_PATH, parentDirectoryPath, directoryName if directoryName is not None else dependencyName)
-        try:
-            dependencyManager.install_dependency(dependencyName, version, url, installDirectoryPath)
-            utility.log("{d} installed successfuly".format(d=dependencyName))
-        except Exception as e:
-            utility.log("a problem occurred while installing {d} : {m}".format(d=dependencyName, m=str(e)))
-
     utility.log("synchronizing dependencies")
     utility.ensure_directory(DEPSINSTALL_DIR_PATH)
-
-    for depName in requiredDeps.get_dependencies_list():
+    required_dependencies_names = requiredDeps.get_dependencies_names()
+    for depName in required_dependencies_names:
         utility.log("Processing {d}".format(d=depName), 1)
+
+        # get current installed version (or set version to 0.0 for new dependencies)
         if installedDependencies.is_installed(depName):
             installedVersion = installedDependencies.get_installed_version(depName)
         else:
             installedVersion = str(StrictVersion('0.0'))
+
+        # get and normalize required version
         requiredVersion = requiredDeps.get_dependency_version(depName)
-        if requiredVersion != 'latest':
-            requiredVersion = str(StrictVersion(requiredVersion))
-            if StrictVersion(requiredVersion) == StrictVersion(installedVersion):
-                utility.log("Required version == Installed version == {v}".format(v=installedVersion))
-            elif StrictVersion(requiredVersion) < StrictVersion(installedVersion):
-                if flags.downgrade:
-                    if depsMap.check_dependency_existence(depName, requiredVersion):
-                        call_install_dependency(depName, requiredVersion)
-                    else:
-                        utility.log("{d} version {v} is not found".format(d=depName, v=requiredVersion))
+        requiredVersion = str(StrictVersion(requiredVersion))
+
+        if StrictVersion(requiredVersion) == StrictVersion(installedVersion):
+            utility.log("Required version == Installed version == {v}".format(v=installedVersion))
+        elif StrictVersion(requiredVersion) < StrictVersion(installedVersion):
+            if flags.downgrade:
+                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, mirrorClient):
+                    utility.log("{p} version {v} installed successfuly".format(p=depName, v=requiredVersion))
                 else:
-                    utility.log("Required version {v1} < Installed version {v2}, No action taken (downgrade flag is not set)".format(v1=requiredVersion, v2=installedVersion))
+                    utility.log("{p} installation failed".format(p=depName))
             else:
-                if (flags.update and StrictVersion(installedVersion) > StrictVersion('0.0')) or (flags.install and StrictVersion(installedVersion) == StrictVersion('0.0')):
-                    if depsMap.check_dependency_existence(depName, requiredVersion):
-                        call_install_dependency(depName, requiredVersion)
-                    else:
-                        utility.log("{d} version {v} is not found".format(d=depName, v=requiredVersion))
-                else:
-                    utility.log("Required version {v1} > Installed version {v2}, No action taken (update flag is not set)".format(v1=requiredVersion, v2=installedVersion))
+                utility.log("Required version {v1} < Installed version {v2}, No action taken (downgrade flag is not set)".format(v1=requiredVersion, v2=installedVersion))
         else:
-            requiredVersion = get_latest_version(depName, depsMap)
-            if StrictVersion(requiredVersion) == StrictVersion('0.0'):
-                utility.log("no versions for {d} are available\n".format(d=depName), -1)
-                continue
-            if StrictVersion(requiredVersion) == StrictVersion(installedVersion):
-                utility.log("Latest version == Installed version == {v}".format(v=installedVersion))
-            elif StrictVersion(requiredVersion) < StrictVersion(installedVersion):
-                utility.log("Latest version {v1} < Installed version {v2}".format(v1=requiredVersion, v2=installedVersion))
-                if flags.downgrade:
-                    if utility.query_yes_no("do you want to downgrade dependency {d} from version {v1} to version {v2}".format(d=depName, v1=installedVersion, v2=requiredVersion)):
-                        call_install_dependency(depName, requiredVersion)
-                    else:
-                        utility.log("omitting {d}".format(d=depName))
+            if (flags.update and StrictVersion(installedVersion) > StrictVersion('0.0')) or (flags.install and StrictVersion(installedVersion) == StrictVersion('0.0')):
+                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, mirrorClient):
+                    utility.log("{p} version {v} installed successfuly".format(p=depName, v=requiredVersion))
                 else:
-                    utility.log("No action taken (downgrade flag is not set)")
+                    utility.log("{p} installation failed".format(p=depName))
             else:
-                if (flags.update and StrictVersion(installedVersion) > StrictVersion('0.0')) or (flags.install and StrictVersion(installedVersion) == StrictVersion('0.0')):
-                    call_install_dependency(depName, requiredVersion)
-                else:
-                    utility.log("Required latest version = {v1} > Installed version {v2}, No action taken ({f} flag is not set)".format(v1=requiredVersion, v2=installedVersion), f="install" if StrictVersion(installedVersion) == StrictVersion('0.0') else "update")
+                utility.log("Required version {v1} > Installed version {v2}, No action taken (update flag is not set)".format(v1=requiredVersion, v2=installedVersion))
         # unident log messages
         utility.log("", -1)
 
-    dependenciesToRemove = [item for item in installedDependencies.get_dependencies_list() if item not in requiredDeps.get_dependencies_list()]
+    dependenciesToRemove = [item for item, version in installedDependencies.get_dependencies_list().items() if item not in required_dependencies_names]
     if dependenciesToRemove:
         utility.log("Installed dependencies that are not needed anymore : " + ",".join(dependenciesToRemove))
         if not flags.remove:
@@ -234,29 +198,60 @@ def sync_dependencies(requiredDeps, installedDependencies, depsMap, dependencyMa
             for dependencyName in dependenciesToRemove:
                 utility.log("removing {d}".format(d=dependencyName))
                 dependencyManager.remove_dependency(dependencyName)
+
+    generate_environment(installedDependencies.get_dependencies_list(), registryClient, DEPSINSTALL_DIR_PATH, GENERATED_ENVIRONMENT_PATH)
     utility.log("synchronization operation finished")
 
-def load_mapping_handler():
-    settings = Settings()
-    if settings.get_deps_map_location():
-        mappingHandler = download_mapping_handler(settings.get_deps_map_location())
-    elif os.path.exists(DEPSINFO_FILE_PATH):
-        mappingHandler = MappingHandler(utility.load_json_file(DEPSINFO_FILE_PATH))
-    else:
-        raise Exception("No dependency-to-url map file specified")
-    return mappingHandler
 
-
-def download_mapping_handler(url):
-    assert(url)
-    print "download mapping file"
+def install_dependency(name, version, dependencyManager, registryClient, mirrorClient):
     try:
-        response = urllib2.urlopen(urllib2.Request(url))
-    except urllib2.HTTPError as e:
-        raise Exception("Unable to download mapping file from {u}, ".format(u=url), str(e))
-    mappingHandler = MappingHandler(json.load(response))
-    response.close()
-    return mappingHandler
+        packageHandler = registryClient.get_package_details(name)
+    except Exception as e:
+        utility.log(str(e))
+        return False
+
+    if not packageHandler.check_version_existence(version):
+        utility.log("package {p} version {v} is not in the ppm registry".format(p=name, v=version))
+
+    url = packageHandler.get_package_url(version)
+    # check for mirror url
+    if mirrorClient:
+        mirror_url = mirrorClient.get_package_mirror_url(url)
+        if mirror_url:
+            url = mirror_url
+
+    parentDirectoryPath = packageHandler.get_package_parentdir(version)
+    directoryName = packageHandler.get_package_dirname(version)
+    installDirectoryPath = utility.joinPaths(DEPSINSTALL_DIR_PATH, parentDirectoryPath, directoryName)
+    try:
+        dependencyManager.install_dependency(name, version, url, installDirectoryPath)
+        return True
+    except Exception as e:
+        utility.log(str(e))
+        return False
+    
+
+def generate_environment(dependencies, registryClient, baseDirPath, savePath):
+    environment_manager = EnvironmentManager(baseDirPath)
+    for name, version in dependencies.items():
+        package_details = registryClient.get_package_details(name)
+        environment_manager.add_package_env(name, package_details.get_package_env(version))
+
+    utility.ensure_file_directory(savePath)
+    with open(savePath, 'w+') as f:
+        f.write(environment_manager.generate_script())
+
+
+def get_registry_client():
+    settings = Settings() 
+    if settings.get_registry_server():
+        return RegistryClient(settings.get_registry_server())
+
+
+def get_mirror_client():
+    settings = Settings() 
+    if settings.get_mirror_server():
+        return MirrorClient(settings.get_mirror_server())
 
 
 class RequiredDependencies:
@@ -278,7 +273,7 @@ class RequiredDependencies:
             return True
         return False
 
-    def get_dependencies_list(self):
+    def get_dependencies_names(self):
         return self.data.keys()
 
     def __validate_schema(self, data):
@@ -299,13 +294,13 @@ def save_installed_deps(content):
         utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
 
 
-def get_latest_version(depName, depsinfo):
+def get_latest_version(availableVersions):
     try:
-        availableVersions = depsinfo.get_versions(depName)
         availableVersions.sort(key=StrictVersion)
         return str(StrictVersion(availableVersions[-1]))
     except Exception:
         return str(StrictVersion('0.0'))
+
 
 if __name__ == "__main__":
     parseArguments()

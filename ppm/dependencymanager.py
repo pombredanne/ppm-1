@@ -75,7 +75,7 @@ class InstalledDependencies:
             raise ValueError("invalid Data")
 
     def get_dependencies_list(self):
-        return self.data.keys()
+        return dict([(k, v["version"]) for k,v in self.data.items()])
 
     def get_installed_version(self, depName):
         assert(self.is_installed(depName))

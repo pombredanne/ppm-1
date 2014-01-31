@@ -40,6 +40,7 @@ def post_json_data(jsonData,server):
 def download_file(url, installDirectory, allowRedirection=True):
     assert (url and installDirectory)
     assert (os.path.exists(installDirectory))
+    log("downloading {u}".format(u=url))
     localName = url2name(url)
     r = urllib2.urlopen(urllib2.Request(url))
     if 'Content-Disposition' in r.info():
@@ -70,7 +71,7 @@ def secure_against_path_traversal(path):
 # extracting files
 def extract_file(filePath, extractPath):
     assert ((os.path.exists(filePath)) and (os.path.exists(extractPath)))
-    if filePath.endswith(".tar.gz"):
+    if filePath.endswith(('gz','tar','bz2')):
         extract_tar(filePath, extractPath)
         return True
     elif filePath.endswith("zip"):
@@ -120,7 +121,7 @@ def move_directory_contents(src, dest):
 
 # facility on top of os..path.join to normalize paths and ignore empty strings
 def joinPaths(*paths):
-    return os.path.join(*[os.path.normpath(os.path.normcase(p)) for p in paths if p])
+    return os.path.join(*[os.path.normpath(os.path.normcase(p)) for p in paths if p]) if any(paths) else ""
 
 #DIRTY: quick way to print nested messages
 def log(message, indentPadding=0):
