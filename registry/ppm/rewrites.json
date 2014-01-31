@@ -1,0 +1,18 @@
+[
+  {
+    "to": "_view/packagesnames",
+    "from": "packagesnames"
+  },
+  {
+    "to": "_view/urlslist",
+    "from": "urlslist"
+  },
+  {
+    "to": "../../*",
+    "from": "package/*"
+  },
+  {
+    "to": "../../../*",
+    "from": "/*"
+  }
+]
