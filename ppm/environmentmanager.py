@@ -2,8 +2,8 @@ import os
 from time import gmtime, strftime
 
 class EnvironmentManager:
-	def __init__(self,baseDir):
-		baseDirStatement = "export DEPS_HOME=\""+baseDir+"\"\n"
+	def __init__(self,deps_dir_rel):
+		baseDirStatement = "export DEPS_HOME=\"$(pwd)/"+deps_dir_rel+"\"\n"
 		self.env = [baseDirStatement]
 
 	def add_package_env(self,package_name, package_env):

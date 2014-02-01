@@ -223,7 +223,7 @@ def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirro
                 utility.log("removing {d}".format(d=dependencyName))
                 dependencyManager.remove_dependency(dependencyName)
 
-    generate_environment(installedDependencies.get_dependencies_list(), registryClient, DEPSINSTALL_DIR_PATH, GENERATED_ENVIRONMENT_PATH)
+    generate_environment(installedDependencies.get_dependencies_list(), registryClient, os.path.basename(DEPSINSTALL_DIR_PATH), GENERATED_ENVIRONMENT_PATH)
     utility.log("synchronization operation finished")
 
 
@@ -246,9 +246,9 @@ def install_dependency(name, version, dependencyManager, registryClient, mirrorC
 
     parentDirectoryPath = packageHandler.get_package_parentdir(version)
     directoryName = packageHandler.get_package_dirname(version)
-    installDirectoryPath = utility.joinPaths(DEPSINSTALL_DIR_PATH, parentDirectoryPath, directoryName)
+    installDirectoryRelPath = utility.joinPaths(parentDirectoryPath, directoryName)
     try:
-        dependencyManager.install_dependency(name, version, url, installDirectoryPath)
+        dependencyManager.install_dependency(name, version, url, installDirectoryRelPath)
         return True
     except Exception as e:
         utility.log(str(e))

@@ -6,6 +6,7 @@ import shutil
 import urllib2
 import json
 import requests
+from config import REQUEST_TIMEOUT
 
 def load_json_file(depsFilePath):
     with open(depsFilePath) as fileContent:
@@ -34,7 +35,7 @@ def url2name(url):
 def post_json_data(jsonData,server):
     assert(jsonData)
     headers = {'content-type': 'application/json'}
-    r = requests.post(server, data=json.dumps(jsonData), headers=headers)
+    r = requests.post(server, data=json.dumps(jsonData), headers=headers, timeout=REQUEST_TIMEOUT)
     return r.text
 
 def download_file(url, installDirectory, allowRedirection=True):
@@ -42,7 +43,7 @@ def download_file(url, installDirectory, allowRedirection=True):
     assert (os.path.exists(installDirectory))
     log("downloading {u}".format(u=url))
     localName = url2name(url)
-    r = urllib2.urlopen(urllib2.Request(url))
+    r = urllib2.urlopen(url, timeout=REQUEST_TIMEOUT)
     if 'Content-Disposition' in r.info():
         # If the response has Content-Disposition, we take file name from it
         localName = r.info()['Content-Disposition'].split('filename=')[1]
