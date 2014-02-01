@@ -6,7 +6,7 @@ var config = {
 	MIRROR_SERVER_PORT: 8888,
 
 	// link to registry list of urls to mirror
-	REGISTRY_SERVER_URLSLIST_URL: "http://localhost:5984/urlslist",
+	REGISTRY_SERVER_URLSLIST_URL: "http://127.0.0.1:5984/ppm/urlslist",
 	// how often check registry for updates
 	CHECK_INTERVALL: 3600 * 1000, //every hour
 

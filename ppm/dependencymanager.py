@@ -22,15 +22,14 @@ class DependencyManager:
     def install_dependency(self, dependencyName, version, url, installDirectory):
         savePath = utility.download_file(url, self.download_directory)
         utility.clear_directory_contents(self.extraction_directory)
-        if utility.extract_file(savePath, self.extraction_directory):
-            os.remove(savePath)
-        else:
-            raise Exception("incompatible file type")
+        
+        utility.extract_file(savePath, self.extraction_directory)
+        os.remove(savePath)
 
         if self.installedDependencies.is_installed(dependencyName):
             self.remove_dependency(dependencyName)
 
-        # not sure wether to add this or not (can cause serious consequences)
+        # not sure wether to add this or not (can cause serious impact)
         #if os.path.exists(installDirectory):
         #    utility.log("installation directory {i} for dependency {d} already exist, overwriting it...".format(i=installDirectory,d=dependencyName))
         #    shutil.rmtree(installDirectory)

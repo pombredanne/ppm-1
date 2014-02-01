@@ -81,7 +81,7 @@ def cmd_sync(args):
 
 def cmd_download(args):
     """ downloading one or more packages without monitoring them, this is meant for downloading from a local repositry """
-    downloadDirectory = args.directory
+    downloadDirectory = args.directory or os.getcwd()
     packages = [('@' in p and p.split('@')) or [p,"latest"] for p in args.packages]
     if not os.path.exists(downloadDirectory):
         utility.log("{d} does not exist".format(d=downloadDirectory))
@@ -169,7 +169,7 @@ def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirro
         requiredVersion = str(StrictVersion(requiredVersion))
 
         if StrictVersion(requiredVersion) == StrictVersion(installedVersion):
-            utility.log("Required version == Installed version == {v}".format(v=installedVersion))
+            utility.log("version {v} already installed".format(v=installedVersion))
         elif StrictVersion(requiredVersion) < StrictVersion(installedVersion):
             if flags.downgrade:
                 if install_dependency(depName, requiredVersion, dependencyManager, registryClient, mirrorClient):

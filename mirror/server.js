@@ -18,12 +18,12 @@ var run = function(adress, port, packages_dir_path, map_file) {
                     var fbody = JSON.parse(fs.readFileSync(map_file));
                     if (fbody.hasOwnProperty(requestedPackage)){
                         response.writeHead(200, {'Content-Type': 'text/html'});
-                        response.end("http://"+adress+":"+port+"/"+fbody[requestedPackage]+"\n");
+                        response.end("http://"+adress+":"+port+"/"+fbody[requestedPackage]);
                         return;
                     }
                 }
                 response.writeHead(404, {'Content-Type': 'text/html'});
-                response.write("404 url does not exist\n");
+                response.write("404 url does not exist");
                 response.end();
             });
         } else {
@@ -36,7 +36,7 @@ var run = function(adress, port, packages_dir_path, map_file) {
                     response.writeHead(404, {
                         "Content-Type": "text/plain"
                     });
-                    response.write("404 Not Found\n");
+                    response.write("404 Not Found");
                     response.end();
                     return;
                 }
@@ -44,7 +44,7 @@ var run = function(adress, port, packages_dir_path, map_file) {
                     response.writeHead(403, {
                         "Content-Type": "text/plain"
                     });
-                    response.write("Access Forbidden\n");
+                    response.write("Access Forbidden");
                     response.end();
                     return;
                 }
@@ -60,7 +60,7 @@ var run = function(adress, port, packages_dir_path, map_file) {
                     response.writeHead(500, {
                             "Content-Type": "text/plain"
                         });
-                    response.write(err + "\n");
+                    response.write(err);
                     response.end();
                     console.log("Error piping from file to client: "+err)
                 });

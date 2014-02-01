@@ -12,7 +12,7 @@ var check_registry_updates = function(registry_urls_url, download_dir, map_file,
             process_urls(parse_res(body), download_dir, map_file);
         }
         else {
-            console.log("error downloading registry urls: "+ (err || response.statusCode));
+            console.log("error downloading registry urls: "+ (error || response.statusCode));
         }
     });
 };

@@ -71,14 +71,16 @@ def secure_against_path_traversal(path):
 # extracting files
 def extract_file(filePath, extractPath):
     assert ((os.path.exists(filePath)) and (os.path.exists(extractPath)))
-    if filePath.endswith(('gz','tar','bz2')):
-        extract_tar(filePath, extractPath)
-        return True
-    elif filePath.endswith("zip"):
-        extract_zip(filePath, extractPath)
-        return True
-    else:
-        return False
+    log("Extracting " + os.path.basename(filePath))
+    try:
+        if filePath.endswith(('gz','tar','bz2')):
+            extract_tar(filePath, extractPath)
+        elif filePath.endswith("zip"):
+            extract_zip(filePath, extractPath)
+        else:
+            raise Exception("incompatible file type")
+    except Exception as e:
+            raise Exception("Archive extraction ERROR:", str(e))
 
 def extract_tar(filePath, extractPath):
     tar = tarfile.open(filePath)
