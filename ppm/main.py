@@ -41,23 +41,13 @@ def parseArguments():
     args.func(args)
 
 
-# cmd_sampleFunction is responsible for validating commandline arguments and loading sampleFunction dependencies(parameters of sampleFunction)
+# cmd_sync validate and prepare synchronization operation environment
 def cmd_sync(args):
-    if not os.path.exists(REQDEPS_FILE_PATH):
-        raise Exception("unable to fetch dependencies, {d} file does not exist".format(d=REQDEPS_FILE_PATH))
-    jsonData = utility.load_json_file(REQDEPS_FILE_PATH)
-
-    if ('devdependencies' not in jsonData):
-        print "no dependencies found"
-        return
-    
     flags = Flags(install=not args.without_install,
                   update=not args.without_update,
                   downgrade=not args.without_downgrade,
                   remove=not args.without_remove)
 
-    requiredDeps = RequiredDependencies(jsonData.get('devdependencies'))
-    
     utility.ensure_directory(DEPSINSTALL_DIR_PATH)
 
     # load currently installed dependencies
@@ -67,7 +57,28 @@ def cmd_sync(args):
 
     registryClient = get_registry_client()
     if not registryClient:
-        raise Exception("registry server is not set, please set it using set-registry-server command")
+        print "registry server is not set, please set it before running ppm"
+        return
+
+    settings = Settings()
+    if settings.get_current_project():
+        project_name = settings.get_current_project()
+        try:
+            jsonData = registryClient.get_project_details(project_name)
+        except Exception as e:
+            print "Error occured while retrieving project {p} details from registry server: {e}".format(p=project_name, e=str(e))
+            return
+    elif os.path.exists(REQDEPS_FILE_PATH):
+        try:
+            jsonData = utility.load_json_file(REQDEPS_FILE_PATH)
+        except Exception as e:
+            print "Error occured while reading {f}: {e}".format(f=os.path.basename(REQDEPS_FILE_PATH), e=str(e))
+            return            
+    else:
+        print "unable to fetch dependencies, you have to set a project or create a {d} file".format(d=os.path.basename(REQDEPS_FILE_PATH))
+        return
+
+    requiredDeps = RequiredDependencies(jsonData.get('devdependencies',{}))
     
     mirrorClient = get_mirror_client()
 
@@ -267,6 +278,25 @@ def get_mirror_client():
         return MirrorClient(settings.get_mirror_server())
 
 
+def load_installed_deps_file():
+    installedDepsContents = None
+    if os.path.exists(CURRENTDEPS_FILE_PATH):
+        installedDepsContents = utility.load_json_file(CURRENTDEPS_FILE_PATH)
+    return installedDepsContents
+
+
+def save_installed_deps(content):
+    if content:
+        utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
+        utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
+
+def get_latest_version(availableVersions):
+    try:
+        availableVersions.sort(key=StrictVersion)
+        return str(StrictVersion(availableVersions[-1]))
+    except Exception:
+        return str(StrictVersion('0.0'))
+
 class RequiredDependencies:
     def __init__(self, data):
         if data is None:
@@ -292,28 +322,6 @@ class RequiredDependencies:
     def __validate_schema(self, data):
         # TODO
         return True
-
-
-def load_installed_deps_file():
-    installedDepsContents = None
-    if os.path.exists(CURRENTDEPS_FILE_PATH):
-        installedDepsContents = utility.load_json_file(CURRENTDEPS_FILE_PATH)
-    return installedDepsContents
-
-
-def save_installed_deps(content):
-    if content:
-        utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
-        utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
-
-
-def get_latest_version(availableVersions):
-    try:
-        availableVersions.sort(key=StrictVersion)
-        return str(StrictVersion(availableVersions[-1]))
-    except Exception:
-        return str(StrictVersion('0.0'))
-
 
 if __name__ == "__main__":
     parseArguments()
