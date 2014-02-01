@@ -28,17 +28,14 @@ def parseArguments():
     parser_download.add_argument('--directory', help="directory where to download files")
     parser_download.set_defaults(func=cmd_download)
 
-    parser_registryHandler = subparsers.add_parser('set-registry-server', help='set registry server')
-    parser_registryHandler.add_argument('server', help="host adress")
-    parser_registryHandler.set_defaults(func=cmd_set_registry)
+    parser_settingsHandler = subparsers.add_parser('set', help='set a setting')
+    parser_settingsHandler.add_argument('setting_name', help="(registry-server|mirror-server|project)")
+    parser_settingsHandler.add_argument('setting_value', help="option value")
+    parser_settingsHandler.set_defaults(func=cmd_set_setting)
 
-    parser_mirror = subparsers.add_parser('set-mirror-server', help='set preferred mirror server')
-    parser_mirror.add_argument('server', help="host adress")
-    parser_mirror.set_defaults(func=cmd_set_mirror)
-
-    parser.add_argument('--verbose', help="Enable verbosity", action='store_false')
-    parser.add_argument('--production', help="production environment, development is assumed if not present", default=False, action='store_true')
-    parser.add_argument('--mirror', help="set repository server where to fetch dependencies")
+    parser_settingsUnsetHandler = subparsers.add_parser('unset', help='unset a setting')
+    parser_settingsUnsetHandler.add_argument('setting_name', help="(registry-server|mirror-server|project)")
+    parser_settingsUnsetHandler.set_defaults(func=cmd_unset_setting)
 
     args = parser.parse_args()
     args.func(args)
@@ -49,7 +46,8 @@ def cmd_sync(args):
     if not os.path.exists(REQDEPS_FILE_PATH):
         raise Exception("unable to fetch dependencies, {d} file does not exist".format(d=REQDEPS_FILE_PATH))
     jsonData = utility.load_json_file(REQDEPS_FILE_PATH)
-    if (not args.production and 'devdependencies' not in jsonData) or (args.production and 'proddependencies' not in jsonData):
+
+    if ('devdependencies' not in jsonData):
         print "no dependencies found"
         return
     
@@ -119,20 +117,35 @@ def cmd_download(args):
                 url = mirror_url
         utility.download_file(url, downloadDirectory)
 
-def cmd_set_registry(args):
-    server = args.server
-    settings = Settings()
-    settings.set_registry_server(server)
-    settings.save()
-    print "registry server has been set to {s}".format(s=server)
+def cmd_set_setting(args):
+    setting_name = args.setting_name
+    setting_value = args.setting_value
+    try:
+        set_setting(setting_name, setting_value)
+        print "{n} has been set to {v}".format(n=setting_name, v=setting_value)
+    except Exception as e:
+        print str(e)
 
-def cmd_set_mirror(args):
-    server = args.server
-    settings = Settings()
-    settings.set_mirror_server(server)
-    settings.save()
-    print "mirror server has been set to {s}".format(s=server)
+def cmd_unset_setting(args):
+    setting_name = args.setting_name
+    try:
+        set_setting(setting_name, None)
+        print "{n} has been unset".format(n=setting_name)
+    except Exception as e:
+        print str(e)
 
+def set_setting(setting_name, setting_value):
+    settings = Settings()
+    if setting_name == "registry-server":
+        settings.set_registry_server(setting_value)
+    elif setting_name == "mirror-server":
+        settings.set_mirror_server(setting_value)
+    elif setting_name == "project":
+        settings.set_current_project(setting_value)
+    else:
+        raise Exception("invalid setting")
+    settings.save()
+ 
 # I prefer writing flags.install instead of flags["install"] or installFlag, this class is merely for that purpose
 class Flags:
     def __init__(self, install, update, downgrade, remove):
