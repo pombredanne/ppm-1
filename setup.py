@@ -19,7 +19,7 @@ setup(name='ppm',
       packages=find_packages(exclude=['registry', 'tests', 'mirror']),
       entry_points={
         'console_scripts': [
-            'ppm=ppm:main',
+            'ppm=ppm.main:parseArguments',
         ],
       },
 )
