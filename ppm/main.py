@@ -16,14 +16,14 @@ def parseArguments():
 
     subparsers = parser.add_subparsers(title='commands', dest='subparser_name')
 
-    parser_sync = subparsers.add_parser('sync', help='synchronize with {d}'.format(d=os.path.basename(REQDEPS_FILE_PATH)))
+    parser_sync = subparsers.add_parser('sync', help='synchronize with project dependencies')
     parser_sync.add_argument('--without-install', help="do not install inexistant dependencies", default=False, action='store_true')
     parser_sync.add_argument('--without-update', help="do not update installed packages", default=False, action='store_true')
     parser_sync.add_argument('--without-downgrade', help="do not downgrade packages", default=False, action='store_true')
     parser_sync.add_argument('--without-remove', help="do not remove installed packages which are not present in {d}".format(d=os.path.basename(REQDEPS_FILE_PATH)), default=False, action='store_true')
     parser_sync.set_defaults(func=cmd_sync)
 
-    parser_download = subparsers.add_parser('download', help='download one or more files(witout adding them to {d} or monitoring them)'.format(d=os.path.basename(REQDEPS_FILE_PATH)))
+    parser_download = subparsers.add_parser('download', help='download one or more packages(witout installing them)')
     parser_download.add_argument('packages', help="dependencies to download in the format dependencyName@(version|latest)", nargs='+')
     parser_download.add_argument('--directory', help="directory where to download files")
     parser_download.set_defaults(func=cmd_download)
@@ -41,8 +41,8 @@ def parseArguments():
     args.func(args)
 
 
-# cmd_sync validate and prepare synchronization operation environment
 def cmd_sync(args):
+    """cmd_sync validate and prepare synchronization operation environment"""
     flags = Flags(install=not args.without_install,
                   update=not args.without_update,
                   downgrade=not args.without_downgrade,
@@ -52,7 +52,9 @@ def cmd_sync(args):
 
     # load currently installed dependencies
     installedDeps = InstalledDependencies(load_installed_deps_file())
-
+    # make sure all dependencies are installed
+    check_integrity(installedDeps, DEPSINSTALL_DIR_PATH)
+    
     dependencyManager = DependencyManager(installedDeps, DEPSINSTALL_DIR_PATH)
 
     registryClient = get_registry_client()
@@ -286,9 +288,8 @@ def load_installed_deps_file():
 
 
 def save_installed_deps(content):
-    if content:
-        utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
-        utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
+    utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
+    utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
 
 def get_latest_version(availableVersions):
     try:
@@ -296,6 +297,16 @@ def get_latest_version(availableVersions):
         return str(StrictVersion(availableVersions[-1]))
     except Exception:
         return str(StrictVersion('0.0'))
+
+def check_integrity(installed_dependencies, dependencies_directory):
+    installed_paths = dict([(installed_dependencies.get_installation_path(name), name) for name in installed_dependencies.get_dependencies_list().keys()])
+    not_found_dirs = [d for d in installed_paths.keys() if not os.path.isdir(os.path.join(dependencies_directory, d))]
+    if not_found_dirs:
+        print "checking dependencies integrity"
+        print "some dependencies directories have been deleted manually:" + str(not_found_dirs)
+        for d in not_found_dirs:
+            installed_dependencies.remove_dependency(installed_paths[d])
+            print "uninstalling " + d
 
 class RequiredDependencies:
     def __init__(self, data):
@@ -325,3 +336,4 @@ class RequiredDependencies:
 
 if __name__ == "__main__":
     parseArguments()
+

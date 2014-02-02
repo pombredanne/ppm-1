@@ -116,6 +116,5 @@ class InstalledDependencies:
         return True
 
 def save_installed_deps(content):
-    if content:
-        utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
-        utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
+    utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
+    utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)
