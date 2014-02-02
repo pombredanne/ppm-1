@@ -1,7 +1,7 @@
 import os
 import shutil
 import utility
-from config import TMPDOWNLOAD_DIR_NAME, TMPEXTRACTION_DIR_NAME
+from config import TMPDOWNLOAD_DIR_NAME, TMPEXTRACTION_DIR_NAME, CURRENTDEPS_FILE_PATH
 
 
 class DependencyManager:
@@ -90,11 +90,14 @@ class InstalledDependencies:
     def remove_dependency(self, dependencyName):
         assert (self.is_installed(dependencyName))
         del self.data[dependencyName]
+        save_installed_deps(self.get_data())
 
     def add_dependency(self, depName, version, installationPath):
         assert (version and installationPath)
         assert (not self.is_installed(depName))
         self.data[depName] = {"version": version, "path": installationPath}
+        # hack to save installed dependencies every time data gets updated, this statement have to move out of here eventually
+        save_installed_deps(self.get_data())
 
     def is_installed(self, depName, version=None):
         assert(depName)
@@ -111,3 +114,8 @@ class InstalledDependencies:
     def __validate_schema(self, data):
         # TODO
         return True
+
+def save_installed_deps(content):
+    if content:
+        utility.ensure_file_directory(CURRENTDEPS_FILE_PATH)
+        utility.save_json_to_file(content, CURRENTDEPS_FILE_PATH)

@@ -89,7 +89,7 @@ def cmd_sync(args):
     save_installed_deps(installedDeps.get_data())
 
 def cmd_download(args):
-    """ downloading one or more packages without monitoring them, this is meant for downloading from a local repositry """
+    """ downloading one or more packages without monitoring them"""
     downloadDirectory = args.directory or os.getcwd()
     packages = [('@' in p and p.split('@')) or [p,"latest"] for p in args.packages]
     if not os.path.exists(downloadDirectory):
