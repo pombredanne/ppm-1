@@ -6,7 +6,7 @@ requirements=''
 with open('requirements.txt') as f:
 	requirements = f.read()
 
-with open('README.md') as file:
+with open('README.txt') as file:
     long_description = file.read()
 
 setup(name='ppm',
