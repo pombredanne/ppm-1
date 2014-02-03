@@ -1,15 +1,19 @@
 from setuptools import setup, find_packages
 
 version = '0.1'
+
 requirements=''
 with open('requirements.txt') as f:
 	requirements = f.read()
+
+with open('README.md') as file:
+    long_description = file.read()
 
 setup(name='ppm',
       version=version,
       url = 'https://github.com/predictix/ppm',
       description="project package manager, a tool for managing general project dependencies",
-      long_description="",
+      long_description=long_description,
       classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: MIT License',
