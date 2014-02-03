@@ -1,6 +1,9 @@
 from setuptools import setup, find_packages
 
 version = '0.1'
+requirements=''
+with open('requirements.txt') as f:
+	requirements = f.read()
 
 setup(name='ppm',
       version=version,
@@ -17,6 +20,7 @@ setup(name='ppm',
       author_email='hajyoussef.amine@gmail.com',
       license='MIT',
       packages=find_packages(exclude=['registry', 'tests', 'mirror']),
+      install_requires = requirements,
       entry_points={
         'console_scripts': [
             'ppm=ppm.main:parseArguments',
