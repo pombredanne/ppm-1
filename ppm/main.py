@@ -6,7 +6,7 @@ from distutils.version import StrictVersion
 import utility
 from config import REQDEPS_FILE_PATH, DEPSINSTALL_DIR_PATH, CURRENTDEPS_FILE_PATH, GENERATED_ENVIRONMENT_PATH
 from registryclient import RegistryClient
-from cepositoryclient import RepositoryClient
+from repositoryclient import RepositoryClient
 from dependencymanager import DependencyManager, InstalledDependencies
 from settings import Settings
 from environmentmanager import EnvironmentManager

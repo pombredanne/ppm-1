@@ -14,5 +14,5 @@ class RepositoryClient:
             if r.status_code == 200:
                 return r.text            
         except requests.exceptions.RequestException as e:
-            log("Connection error to mirror server, "+self.server_adress+": "+str(e))
+            log("Connection error to repository server, "+self.server_adress+": "+str(e))
             return None

@@ -1,8 +1,0 @@
-{
-    "name": "ppm mirror",
-    "description": "mirror server for project package manager",
-    "version": "0.1",
-    "dependencies": {
-        "requests": "2.33.0"
-    }
-}
