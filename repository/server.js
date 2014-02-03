@@ -6,7 +6,7 @@ var http = require("http"),
 var run = function(adress, port, packages_dir_path, map_file) {
     http.createServer(function (request, response) {
         if (request.method == 'POST') {
-            // handling post requests for checking if a remote url is present in the mirror server
+            // handling post requests for checking if a remote url is present in the repository server
             var requestedPackage = '';
             request.on('data', function (data) {
                 requestedPackage += data;
@@ -69,7 +69,7 @@ var run = function(adress, port, packages_dir_path, map_file) {
         request.on('error', function(err) {console.log("Error handling request: "+err)});
         response.on('error', function(err) {console.log("Error handling request: "+err)});
     }).listen(parseInt(port, 10), adress);
-    console.log("Mirror file server running at http://"+adress+":" + port + "");
+    console.log("Repository file server running at http://"+adress+":" + port + "");
 };
 
 var extTypes = {

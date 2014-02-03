@@ -6,7 +6,7 @@ from config import SETTINGS_DIR_PATH, SETTINGS_FILE_PATH
 # setting names
 GENERAL_SECTION = "general"
 REGISTRY_SERVER_ADRESS = "registry-server-adress"
-MIRROR_SERVER_ADRESS = "mirror-server-adress"
+REPOSITORY_SERVER_ADRESS = "repository-server-adress"
 CURRENT_PROJECT = "current-project"
 
 class Settings:
@@ -24,8 +24,8 @@ class Settings:
     def get_registry_server(self):
         return self.get_setting(REGISTRY_SERVER_ADRESS)
 
-    def get_mirror_server(self):
-        return self.get_setting(MIRROR_SERVER_ADRESS)
+    def get_repository_server(self):
+        return self.get_setting(REPOSITORY_SERVER_ADRESS)
 
     def get_current_project(self):
         return self.get_setting(CURRENT_PROJECT)
@@ -34,8 +34,8 @@ class Settings:
     def set_registry_server(self, adress):
         self.set_setting(REGISTRY_SERVER_ADRESS, adress)
 
-    def set_mirror_server(self, adress):
-        self.set_setting(MIRROR_SERVER_ADRESS, adress)
+    def set_repository_server(self, adress):
+        self.set_setting(REPOSITORY_SERVER_ADRESS, adress)
 
     def set_current_project(self, project_name):
         self.set_setting(CURRENT_PROJECT, project_name)

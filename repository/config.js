@@ -1,11 +1,11 @@
 var path = require("path");
 
 var config = {
-	// host adress and port to run mirror server on
-	MIRROR_SERVER_HOST: "127.0.0.1",
-	MIRROR_SERVER_PORT: 8888,
+	// host adress and port to run repository server on
+	REPOSITORY_SERVER_HOST: "127.0.0.1",
+	REPOSITORY_SERVER_PORT: 8888,
 
-	// link to registry list of urls to mirror
+	// link to registry list of urls to repository
 	REGISTRY_SERVER_URLSLIST_URL: "http://127.0.0.1:5984/packages/_design/main/_view/urlslist",
 	// how often check registry for updates
 	CHECK_INTERVALL: 3600 * 1000, //every hour

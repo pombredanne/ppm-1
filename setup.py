@@ -23,7 +23,7 @@ setup(name='ppm',
       author='Amine Hajyoussef',
       author_email='hajyoussef.amine@gmail.com',
       license='MIT',
-      packages=find_packages(exclude=['registry', 'tests', 'mirror']),
+      packages=find_packages(exclude=['registry', 'tests', 'repository']),
       install_requires = requirements,
       entry_points={
         'console_scripts': [

@@ -6,7 +6,7 @@ from distutils.version import StrictVersion
 import utility
 from config import REQDEPS_FILE_PATH, DEPSINSTALL_DIR_PATH, CURRENTDEPS_FILE_PATH, GENERATED_ENVIRONMENT_PATH
 from registryclient import RegistryClient
-from mirrorclient import MirrorClient
+from cepositoryclient import RepositoryClient
 from dependencymanager import DependencyManager, InstalledDependencies
 from settings import Settings
 from environmentmanager import EnvironmentManager
@@ -29,12 +29,12 @@ def parseArguments():
     parser_download.set_defaults(func=cmd_download)
 
     parser_settingsHandler = subparsers.add_parser('set', help='set a setting')
-    parser_settingsHandler.add_argument('setting_name', help="(registry-server|mirror-server|project)")
+    parser_settingsHandler.add_argument('setting_name', help="(registry-server|repository-server|project)")
     parser_settingsHandler.add_argument('setting_value', help="option value")
     parser_settingsHandler.set_defaults(func=cmd_set_setting)
 
     parser_settingsUnsetHandler = subparsers.add_parser('unset', help='unset a setting')
-    parser_settingsUnsetHandler.add_argument('setting_name', help="(registry-server|mirror-server|project)")
+    parser_settingsUnsetHandler.add_argument('setting_name', help="(registry-server|repository-server|project)")
     parser_settingsUnsetHandler.set_defaults(func=cmd_unset_setting)
 
     args = parser.parse_args()
@@ -82,10 +82,10 @@ def cmd_sync(args):
 
     requiredDeps = RequiredDependencies(jsonData.get('devdependencies',{}))
     
-    mirrorClient = get_mirror_client()
+    repositoryClient = get_repository_client()
 
     # synchronizing dependencies
-    sync_dependencies(requiredDeps, installedDeps, registryClient, mirrorClient, dependencyManager, flags)
+    sync_dependencies(requiredDeps, installedDeps, registryClient, repositoryClient, dependencyManager, flags)
 
     # save newly installed packages as current dependencies
     save_installed_deps(installedDeps.get_data())
@@ -102,7 +102,7 @@ def cmd_download(args):
     if not registryClient:
         raise Exception("registry server is not set, please set it using set-registry-server command")
     
-    mirrorClient = get_mirror_client()
+    repositoryClient = get_repository_client()
 
     for name, version in packages:
         try:
@@ -123,11 +123,11 @@ def cmd_download(args):
                 continue
 
         url = package_handler.get_package_url(version)
-        # check for mirror url
-        if mirrorClient:
-            mirror_url = mirrorClient.get_package_mirror_url(url)
-            if mirror_url:
-                url = mirror_url
+        # check for repository url
+        if repositoryClient:
+            repository_url = repositoryClient.get_package_repository_url(url)
+            if repository_url:
+                url = repository_url
         utility.download_file(url, downloadDirectory)
 
 def cmd_set_setting(args):
@@ -151,8 +151,8 @@ def set_setting(setting_name, setting_value):
     settings = Settings()
     if setting_name == "registry-server":
         settings.set_registry_server(setting_value)
-    elif setting_name == "mirror-server":
-        settings.set_mirror_server(setting_value)
+    elif setting_name == "repository-server":
+        settings.set_repository_server(setting_value)
     elif setting_name == "project":
         settings.set_current_project(setting_value)
     else:
@@ -167,13 +167,13 @@ class Flags:
         self.downgrade = downgrade
         self.remove = remove
 
-def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirrorClient, dependencyManager, flags):
+def sync_dependencies(requiredDeps, installedDependencies, registryClient, repositoryClient, dependencyManager, flags):
     """synchronizing installed dependencies with requiredDeps, include installing,updating,downgrading and removing dependencies, in accordance to flags,
     Args:
         requiredDeps: array containing required dependencies for the project, in the format [{depName:version},{depName2,version}]
         installedDependencies: currently installed dependencies
         registryClient: client used for requesting a package details from the registry
-        mirrorClient: client used for checking for a package mirror url
+        repositoryClient: client used for checking for a package repository url
         DependencyManager: responsible for dependency installation (or remove)
         flags: operations to be performed (can be update, install, downgrade, remove or any combintation of them)
     """
@@ -198,7 +198,7 @@ def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirro
             utility.log("version {v} already installed".format(v=installedVersion))
         elif StrictVersion(requiredVersion) < StrictVersion(installedVersion):
             if flags.downgrade:
-                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, mirrorClient):
+                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, repositoryClient):
                     utility.log("{p} version {v} installed successfuly".format(p=depName, v=requiredVersion))
                 else:
                     utility.log("{p} installation failed".format(p=depName))
@@ -206,7 +206,7 @@ def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirro
                 utility.log("Required version {v1} < Installed version {v2}, No action taken (downgrade flag is not set)".format(v1=requiredVersion, v2=installedVersion))
         else:
             if (flags.update and StrictVersion(installedVersion) > StrictVersion('0.0')) or (flags.install and StrictVersion(installedVersion) == StrictVersion('0.0')):
-                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, mirrorClient):
+                if install_dependency(depName, requiredVersion, dependencyManager, registryClient, repositoryClient):
                     utility.log("{p} version {v} installed successfuly".format(p=depName, v=requiredVersion))
                 else:
                     utility.log("{p} installation failed".format(p=depName))
@@ -229,7 +229,7 @@ def sync_dependencies(requiredDeps, installedDependencies, registryClient, mirro
     utility.log("synchronization operation finished")
 
 
-def install_dependency(name, version, dependencyManager, registryClient, mirrorClient):
+def install_dependency(name, version, dependencyManager, registryClient, repositoryClient):
     try:
         packageHandler = registryClient.get_package_details(name)
     except Exception as e:
@@ -240,11 +240,11 @@ def install_dependency(name, version, dependencyManager, registryClient, mirrorC
         utility.log("package {p} version {v} is not in the ppm registry".format(p=name, v=version))
 
     url = packageHandler.get_package_url(version)
-    # check for mirror url
-    if mirrorClient:
-        mirror_url = mirrorClient.get_package_mirror_url(url)
-        if mirror_url:
-            url = mirror_url
+    # check for repository url
+    if repositoryClient:
+        repository_url = repositoryClient.get_package_repository_url(url)
+        if repository_url:
+            url = repository_url
 
     parentDirectoryPath = packageHandler.get_package_parentdir(version)
     directoryName = packageHandler.get_package_dirname(version)
@@ -274,10 +274,10 @@ def get_registry_client():
         return RegistryClient(settings.get_registry_server())
 
 
-def get_mirror_client():
+def get_repository_client():
     settings = Settings() 
-    if settings.get_mirror_server():
-        return MirrorClient(settings.get_mirror_server())
+    if settings.get_repository_server():
+        return RepositoryClient(settings.get_repository_server())
 
 
 def load_installed_deps_file():
