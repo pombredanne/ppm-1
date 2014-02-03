@@ -1,8 +1,8 @@
 {
     "name": "ppm-repository",
     "description": "repository server for project package manager",
-    "version": "0.1",
+    "version": "0.1.0",
     "dependencies": {
-        "requests": "2.33.0"
+        "request": "2.33.0"
     }
 }
