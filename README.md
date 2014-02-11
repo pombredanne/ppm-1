@@ -28,6 +28,12 @@ required project dependencies can be specified either locally in a `ppmdependenc
 To run the synchronization operation type:  
 `ppm sync`
 
+### downloading dependencies
+PPM offers the possibility of downloading tarballs without installing them, using the command `ppm download`.  
+Some examples (type `ppm download -h` for more details):  
+`ppm download python@2.7.1 --directory pythondep`  # download python version 2.7.1 to pythondep directory  
+`ppm download nodejs@latest python@2.7.1` # download nodejs latest version and python 2.7.1 to current directory
+
 ## Registry server Configuration:
 the easiest way to setup a registry server is to use the existing config in the registry directory and load it to a couchdb database using couchapp.
 
@@ -54,7 +60,7 @@ a package have the following JSON structure:
 ```
 ####notes:
 
-`_id` attribute is specific to couchdb databse, it's the identifier of package (requesting packages/package._id returns the above json data). 
+`_id` the identifier of package (requesting packages/package._id returns the above json data). 
 
 `env` is a bash script that ppm use to construct the environment shell script (${HOME} refer to the home directory of package).
 
