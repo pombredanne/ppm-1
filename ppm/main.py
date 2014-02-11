@@ -238,6 +238,7 @@ def install_dependency(name, version, dependencyManager, registryClient, reposit
 
     if not packageHandler.check_version_existence(version):
         utility.log("package {p} version {v} is not in the ppm registry".format(p=name, v=version))
+        return False
 
     url = packageHandler.get_package_url(version)
     # check for repository url
