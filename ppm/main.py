@@ -92,11 +92,9 @@ def cmd_sync(args):
 
 def cmd_download(args):
     """ downloading one or more packages without monitoring them"""
-    downloadDirectory = args.directory or os.getcwd()
+    downloadDirectory = utility.joinPaths(os.getcwd(), args.directory)
     packages = [('@' in p and p.split('@')) or [p,"latest"] for p in args.packages]
-    if not os.path.exists(downloadDirectory):
-        utility.log("{d} does not exist".format(d=downloadDirectory))
-        return
+    utility.ensure_directory(downloadDirectory)
 
     registryClient = get_registry_client()
     if not registryClient:

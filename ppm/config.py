@@ -4,7 +4,7 @@ import os
 BASE_PATH = os.getcwd()
 
 # JSON file specifying dependencies to install
-REQDEPS_FILE_PATH = os.path.join(BASE_PATH, "dependencies.json")
+REQDEPS_FILE_PATH = os.path.join(BASE_PATH, "ppmdependencies.json")
 
 # Directory that will contains downloaded dependencies
 DEPSINSTALL_DIR_PATH = os.path.join(BASE_PATH, "dependencies")
