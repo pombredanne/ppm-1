@@ -11,7 +11,7 @@ with open('README.txt') as file:
 
 setup(name='ppm',
       version=version,
-      url = 'https://github.com/predictix/ppm',
+      url = 'https://github.com/pindex/ppm',
       description="project package manager, a tool for managing general project dependencies",
       long_description=long_description,
       classifiers=[
